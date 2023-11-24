@@ -177,14 +177,15 @@ class OnnxPreprocess(object):
         nodes_to_be_removed = []
         for idx, node in enumerate(graph.node):
             if node.op_type == 'Pad':
-                pads = name2data[node.input[1]]
-                if all([x == 0 for x in pads]):
-                    logger.info(f"Remove pad op: <{node.name}>.")
-                    next_nodes = inp2node[node.output[0]]
-                    for next_node, idx in next_nodes:
-                        next_node.input[idx] = node.input[0]
-                    nodes_to_be_removed.append(node)
-                    nodes_to_be_removed.extend(get_constant_inputs(node, out2node))
+                if node.input[1] in name2data:
+                    pads = name2data[node.input[1]]
+                    if all([x == 0 for x in pads]):
+                        logger.info(f"Remove pad op: <{node.name}>.")
+                        next_nodes = inp2node[node.output[0]]
+                        for next_node, idx in next_nodes:
+                            next_node.input[idx] = node.input[0]
+                        nodes_to_be_removed.append(node)
+                        nodes_to_be_removed.extend(get_constant_inputs(node, out2node))
         for node in nodes_to_be_removed:
             graph.node.remove(node)
         return

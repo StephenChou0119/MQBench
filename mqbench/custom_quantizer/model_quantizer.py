@@ -176,8 +176,8 @@ class ModelQuantizer(object):
     @property
     def function_type_to_quant_input(self) -> list:
         return [
-            operator.add,
-            operator.mul,
+            # operator.add,
+            # operator.mul,
             torch.nn.functional.adaptive_avg_pool2d,
             torch.nn.functional.interpolate
         ] + self.additional_function_type
