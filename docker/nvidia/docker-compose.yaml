@@ -1,0 +1,24 @@
+version: '2.6'
+services:
+  perc_debug:
+    image: mqbench:2110
+    container_name: mqbench
+    shm_size: 1024M
+    privileged: true
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    environment:
+      - DISPLAY=:0
+    volumes:
+      - /projects:/projects/
+    ports:
+      - "38888:8888"
+    network_mode: host
+    stdin_open: true
+    tty: true
+    restart: always

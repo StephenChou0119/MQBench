@@ -1,0 +1,20 @@
+# Formatting
+black
+
+# Project
+pyquaternion
+einops
+spconv-cu114
+opencv-python-headless<4.3
+multiprocess
+# Will be removed in future
+easydict
+
+# Dataset
+nuscenes-devkit
+lyft-dataset-sdk
+onnxruntime
+pycuda
+colored
+prettytable
+
