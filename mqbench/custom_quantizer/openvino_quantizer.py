@@ -6,7 +6,7 @@ from typing import Any
 import torch
 from torch.fx import GraphModule
 from torch.quantization import propagate_qconfig_
-from torch.quantization.fx.qconfig_utils import get_flattened_qconfig_dict
+from mqbench.utils import get_flattened_qconfig_dict
 from torch.quantization.quantize_fx import _fuse_fx
 
 from mqbench.utils import is_symmetric_quant

@@ -41,4 +41,4 @@ class NNIEQuantizeFunc(torch.autograd.Function):
 
     @staticmethod
     def symbolic(g, x, data_max):
-        return g.op("::NNIEQuantize", x, data_max)
+        return g.op("mqbench_custom::NNIEQuantize", x, data_max)

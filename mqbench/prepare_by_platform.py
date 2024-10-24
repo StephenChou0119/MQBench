@@ -32,6 +32,7 @@ from mqbench.observer import (
     EMAQuantileObserver,
     MSEObserver,
     EMAMSEObserver,
+    KLDObserver,
 )
 from mqbench.fuser_method_mappings import fuse_custom_config_dict
 from mqbench.utils.logger import logger
@@ -143,6 +144,7 @@ ObserverDict = {
     'LSQObserver':              LSQObserver,              # Usually used for LSQ.  # noqa: E241
     'MSEObserver':              MSEObserver,                                       # noqa: E241
     'EMAMSEObserver':           EMAMSEObserver,                                    # noqa: E241
+    'KLDObserver':              KLDObserver,
 }
 
 FakeQuantizeDict = {
@@ -182,6 +184,12 @@ def get_qconfig_by_platform(deploy_backend: BackendType, extra_qparams: Dict):
             'a_qscheme': {
                 same with w_qscheme.
             }
+            "object_type": [
+                (torch.add, qconfig)
+            ],
+            "module_name": [
+                ("conv1", qconfig)
+            ]
         }
     """
     w_observer = extra_qparams.get('w_observer', None)

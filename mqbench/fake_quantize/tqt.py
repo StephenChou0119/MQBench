@@ -114,4 +114,4 @@ class FakeQuantizeTqtAffine(torch.autograd.Function):
 
     @staticmethod
     def symbolic(g, x, scale, zero_point, quant_min, quant_max, mth):
-        return g.op("::FakeQuantizeTqtAffine", x, scale, zero_point, quant_min_i=quant_min, quant_max_i=quant_max)
+        return g.op("mqbench_custom::FakeQuantizeTqtAffine", x, scale, zero_point, quant_min_i=quant_min, quant_max_i=quant_max)

@@ -5,6 +5,7 @@ import os
 import onnx
 import numpy as np
 from onnx import numpy_helper
+import copy
 
 from mqbench.utils.logger import logger
 from mqbench.deploy.common import (
@@ -63,7 +64,7 @@ class LinearQuantizer_process(object):
         next_nodes = inp2node[node.output[0]]
         assert len(next_nodes) == 1
         next_node, idx = next_nodes[0]
-        assert next_node.op_type in ['Conv', 'Gemm', 'ConvTranspose']
+        assert next_node.op_type in ['Conv', 'Gemm', 'ConvTranspose','Transpose']
         redundant_nodes = []
         if node.input[0] not in named_initializer:
             node.input[0], redundant_nodes = \
@@ -114,20 +115,31 @@ class LinearQuantizer_process(object):
         new_data = numpy_helper.from_array(new_data)
         named_initializer[tensor_name].raw_data = new_data.raw_data
 
-    def post_process_clip_ranges(self, clip_ranges, graph, inp2node):
+    def get_correct_sophgo_tpu_input_tensor_name(self, node, out2node):
+        input_0 = node.input[0]
+        tensor_name = '{}_{}'.format(input_0, out2node[input_0].op_type if input_0 in out2node else '')
+        if tensor_name[-1] == '_':
+            tensor_name = tensor_name[:-1]
+        return tensor_name
+    
+    def post_process_clip_ranges(self, clip_ranges, graph, inp2node, out2node):
         def find_the_closest_clip_range(node):
-            if node.input[0] in clip_ranges:
-                return node.input[0]
-            elif node.op_type in ['Flatten', 'Resize', 'Reshape'] and node.output[0] in inp2node:
+            tensor_name = self.get_correct_sophgo_tpu_input_tensor_name(node, out2node)
+
+            if tensor_name in clip_ranges:
+                return tensor_name
+            elif node.op_type in ['Flatten', 'Resize'] and node.output[0] in inp2node:
                 return find_the_closest_clip_range(inp2node[node.output[0]][0][0])
             else:
                 return None
 
         for node in graph.node:
-            if node.op_type in ['Flatten', 'Resize', 'Reshape']:
+            if node.op_type in ['Flatten', 'Resize']:
                 tensor_name = find_the_closest_clip_range(node)
                 if tensor_name:
-                    clip_ranges[node.input[0]] = clip_ranges[tensor_name]
+                    new_name = self.get_correct_sophgo_tpu_input_tensor_name(node, out2node)
+                    clip_ranges[new_name] = copy.deepcopy(clip_ranges[tensor_name])
+                    clip_ranges[new_name]['ori_name'] =  new_name
                     logger.info(f'Pass <{tensor_name}> clip range to <{node.name}> input <{node.input[0]}>.')
         return clip_ranges
 
@@ -148,6 +160,10 @@ class LinearQuantizer_process(object):
             if node.op_type in ALL_FAKEQUANTIZER:
                 nodes_to_be_removed.append(node)
                 nodes_to_be_removed.extend(get_constant_inputs(node, out2node))
+            if node.output[0] not in inp2node:
+                assert node.output[0] in [l.name for l in graph.output]
+                inp2node[node.output[0]] = []
+            next_nodes = inp2node[node.output[0]]
 
             if node.op_type in PERCHANNEL_FAKEQUANTIZER:
                 # fake quantize for weights, suppose per-channel quantize only for weight
@@ -224,7 +240,7 @@ class LinearQuantizer_process(object):
                 continue
             graph.initializer.remove(initial_data)
 
-        clip_ranges = self.post_process_clip_ranges(clip_ranges, graph, inp2node)
+        clip_ranges = self.post_process_clip_ranges(clip_ranges, graph, inp2node, out2node)
         if backend == 'tensorrt':
             context = {"tensorrt": {"blob_range": clip_ranges}}
         elif backend == 'snpe':

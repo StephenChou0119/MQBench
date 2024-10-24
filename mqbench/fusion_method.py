@@ -1,7 +1,6 @@
 import torch
 import torch.nn.intrinsic.qat as nniqat
 from torch.nn.utils.fusion import fuse_conv_bn_eval, fuse_linear_bn_eval
-from torch.quantization.fx.utils import _parent_name
 
 import mqbench.nn.intrinsic as qnni
 import mqbench.nn.intrinsic.qat as qnniqat
@@ -10,7 +9,14 @@ from mqbench.utils.registry import register_convert_function
 from mqbench.fuser_method_mappings import fuse_deconv_bn_eval
 from mqbench.quantization.default_bias_fake_quant import bias_fake_quantizer
 
-
+# turn foo.bar -> ['foo', 'bar']
+def _parent_name(target):
+    r = target.rsplit('.', 1)
+    if len(r) == 1:
+        return '', r[0]
+    else:
+        return r[0], r[1]
+    
 @register_convert_function(qnni.LinearBn1d)
 def convert_qnni_linearbn(model, fused_node):
     modules = dict(model.named_modules())
@@ -32,10 +38,10 @@ def convert_qnniqat_linearbn(model, fused_node):
     # Merge Linear + BN
     fused_linear = fuse_linear_bn_eval(linear.eval(), fused_module.bn)
     # We need nn.qat.linear here to export weight quantize node.
-    linear.qconfig = fused_module.qconfig
-    linear = torch.nn.qat.Linear.from_float(linear)
+    fused_linear.qconfig = fused_module.qconfig
+    fused_linear = torch.nn.qat.Linear.from_float(fused_linear)
     # Attach weight fake quantize params.
-    linear.weight_fake_quant = fused_module.weight_fake_quant
+    fused_linear.weight_fake_quant = fused_module.weight_fake_quant
     linear_parent_name, linear_name = _parent_name(fused_node.target)
     setattr(modules[linear_parent_name], linear_name, fused_linear)
 
@@ -263,7 +269,7 @@ def convert_qnniqat_convbnrelu(model, fused_node):
     with graph.inserting_after(fused_node):
         relu_node_name = relu_name if conv_parent_name == "" else "{}.{}".format(conv_parent_name, relu_name)
         assert relu_node_name in modules and isinstance(modules[relu_node_name], torch.nn.ReLU)
-        inserted_node = graph.create_node("call_module", relu_node_name, (fused_node,), {})
+        inserted_node = graph.create_node("call_module", relu_node_name, (fused_node,), {}, name = fused_node.name)
         for _node in nodes:
             for i, _arg in enumerate(_node.args):
                 if _arg == fused_node:

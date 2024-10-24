@@ -4,8 +4,10 @@ black
 # Project
 pyquaternion
 einops
-spconv-cu114
-opencv-python-headless<4.3
+spconv-cu120
+# opencv-python version higher than 4.5.x may not support ffmpeg (can't make videos),
+# See https://github.com/NVIDIA/DALI/issues/5052 for details.
+opencv-python==4.5.5.62
 multiprocess
 # Will be removed in future
 easydict
@@ -14,7 +16,8 @@ easydict
 nuscenes-devkit
 lyft-dataset-sdk
 onnxruntime
-pycuda
+pycuda==2024.1
 colored
-prettytable
-
+onnx_graphsurgeon
+python-lzf
+paramiko

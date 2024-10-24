@@ -69,28 +69,22 @@ def convert_onnx(model: GraphModule, input_shape_dict, dummy_input, onnx_model_p
         dummy_input = tuple(dummy_input.values())
     # Per-channel QuantizeLinear and DequantizeLinear is supported since opset 13
     # opset_version = 13 if kwargs.get('deploy_to_qlinear', False) else 11
-    opset_version = 13
+    opset_version = 17
     with torch.no_grad():
-        try:
-            from torch.onnx.utils import ONNXCheckerError
-            try:
-                torch.onnx.export(model, dummy_input, onnx_model_path,
-                                  input_names=input_names,
-                                  output_names=output_names,
-                                  opset_version=opset_version,
-                                  dynamic_axes=dynamic_axes,
-                                  do_constant_folding=True,
-                                  custom_opsets={'' : opset_version})
-            except ONNXCheckerError:
-                pass
-        except ImportError:
-            torch.onnx.export(model, dummy_input, onnx_model_path,
-                              input_names=input_names,
-                              output_names=output_names,
-                              opset_version=opset_version,
-                              do_constant_folding=True,
-                              custom_opsets={'' : opset_version},
-                              enable_onnx_checker=False)
+        import torch._C._onnx as _C_onnx
+        import onnx
+        from onnxsim import simplify
+        torch.onnx.export(model, dummy_input, onnx_model_path,
+                            input_names=input_names,
+                            output_names=output_names,
+                            opset_version=opset_version,
+                            dynamic_axes=dynamic_axes,
+                            do_constant_folding=False,
+                            custom_opsets={'mqbench_custom' : opset_version},
+                            )
+        tmp_model = onnx.load(onnx_model_path)
+        simplified_model, check = simplify(tmp_model)
+        onnx.save_model(simplified_model, onnx_model_path)
         import os
         os.system("polygraphy surgeon sanitize --fold-constants {} -o {}".format(onnx_model_path, onnx_model_path))
 

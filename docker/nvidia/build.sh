@@ -1,0 +1,1 @@
+docker build -t MQBench:torch2.2 .

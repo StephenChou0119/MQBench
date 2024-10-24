@@ -23,13 +23,10 @@ from torch.quantization.quantization_mappings import (
 from torch.quantization.utils import (
     get_combined_dict
 )
-from torch.quantization.fx.qconfig_utils import (
-    get_flattened_qconfig_dict
-)
 from torch.quantization.quantize_fx import (
-    _fuse_fx
+    fuse_fx
 )
-
+from mqbench.utils import get_flattened_qconfig_dict
 from mqbench.utils import getitem2node
 from mqbench.utils.logger import logger
 from mqbench.utils.registry import register_model_quantizer
@@ -61,7 +58,7 @@ class ModelQuantizer(object):
         self.extra_fuse_dict = extra_fuse_dict
 
     def prepare(self, model: GraphModule, qconfig):
-        model = _fuse_fx(model, self.extra_fuse_dict)
+        model = fuse_fx(model, self.extra_fuse_dict)
         model = self._weight_quant(model, qconfig)
         model = self._insert_fake_quantize_for_act_quant(model, qconfig)
         return model
