@@ -1,26 +1,24 @@
 import setuptools
 from mqbench import __version__
 
-
-def read_requirements():
-    reqs = []
-    with open('requirements.txt', 'r') as fin:
-        for line in fin.readlines():
-            reqs.append(line.strip())
-    return reqs
-
-
 setuptools.setup(
-    name="MQBench",
+    name="mqbench-torch2",
     version=__version__,
-    author="The Great Cold",
-    author_email="",
-    description=("Quantization aware training."),
-    python_requires='>=3.6',
+    author="weiyuzhou, The Great Cold",
+    author_email="short_after@163.com",
+    description=("model quantization tools."),
+    python_requires='>=3.10',
+    url = 'https://github.com/StephenChou0119/MQBench',
     packages=setuptools.find_packages(),
+    include_package_data=True,
+    package_data={
+        "requirements": ["requirements.txt"],
+    },
     classifiers=(
         'Development Status :: 3 - Alpha',
         "Programming Language :: Python :: 3",
         "Operating System :: POSIX :: Linux"),
-    install_requires=read_requirements()
+    install_requires=["prettytable"],
+    license='Apache-2.0',
+    
 )
